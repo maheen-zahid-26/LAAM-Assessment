@@ -1,26 +1,69 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Ink & paper: warm charcoal-green on grey-ivory, not the cliché cream/terracotta pairing */
+  --color-ink: #1f2421;
+  --color-paper: #f3f1ea;
+  --color-paper-raised: #ffffff;
+
+  /* Brand accents drawn from South Asian textile dyes */
+  --color-teal: #0f6d5c;
+  --color-marigold: #e0a526;
+
+  /* Semantic stock states — muted, earthy, not stock-alert bright */
+  --color-sage: #3f7d5c;
+  --color-amber: #c97a24;
+  --color-clay: #b84a3e;
+
+  --color-line: #ddd8cc;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  border-color: var(--color-line);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+}
+
+/* Visible keyboard focus everywhere — no silent removal of outlines */
+:focus-visible {
+  outline: 2px solid var(--color-teal);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Signature motif: a running-stitch rule used to separate confidence sections,
+   styled like tailor's tacking rather than a generic <hr>. */
+.stitch-line {
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--color-line) 0px,
+    var(--color-line) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+  height: 1px;
+}
+
+/* Perforated top edge on the price tag card, evoking a torn garment label */
+.tag-perforated {
+  background-image: radial-gradient(
+    circle at 6px 0px,
+    transparent 4px,
+    var(--color-paper) 4.5px
+  );
+  background-size: 12px 8px;
+  background-repeat: repeat-x;
+  background-position: top left;
 }

@@ -1,0 +1,35 @@
+    Clone the repository
+
+    git clone https://github.com/maheen-zahid-26/LAAM-Assessment.git
+    cd LAAM-Assessment
+
+    Database setup (one-time only)
+
+    This project uses Supabase (Postgres). If you're connecting to a fresh
+    Supabase project that doesn't have these tables yet, paste the contents of
+    backend/schema.sql, then backend/seed.sql, into the Supabase SQL editor.
+    This only needs to be done once per project — the data persists, so you
+    don't repeat this step on every run.
+
+    Backend
+
+    cd backend
+    python -m venv venv
+    source venv/bin/activate # Windows: venv\Scripts\activate
+    pip install -r requirements.txt
+    make a .env file in the backend folder and paste
+    DATABASE_URL=postgresql+asyncpg://postgres.tmbhfuywlickbsepbxya:cQW%40b2%3F%40yK7FHcw@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres
+
+        CORS_ORIGIN=http://localhost:3000
+
+    uvicorn main:app --reload --port 8000
+
+    Backend runs at http://localhost:8000 — API docs at http://localhost:8000/docs
+
+    Frontend
+
+    cd frontend
+    npm install
+    npm run dev
+
+    Note: start the backend before the frontend.

@@ -36,170 +36,273 @@ What I built:
 
 3. User Flow
 
-For the user flow, it is like:
+    For the user flow, it is like:
 
-    1.The first page I build is the products page. The user clicks their desired product.
-    2.On clicking it, it navigates to the product view page.
-    3.Customer selects a size the page fetches live stock status for that size and outputs there.
-    4.For the out-of-stock case, some alternative products with the same category and price range are displayed at  the bottom of the page.
-    5.Next, below it, there is a price breakdown and then a total price that the customer will pay for the product.
-    6.For delivery options, the customer types the pin code of their location the page shows an estimated delivery window and date for that pin code, or a clear "not serviceable here" message if it's out of range.
+        1.The first page I build is the products page. The user clicks their desired product.
+        2.On clicking it, it navigates to the product view page.
+        3.Customer selects a size the page fetches live stock status for that size and outputs there.
+        4.For the out-of-stock case, some alternative products with the same category and price range are displayed at  the bottom of the page.
+        5.Next, below it, there is a price breakdown and then a total price that the customer will pay for the product.
+        6.For delivery options, the customer types the pin code of their location the page shows an estimated delivery window and date for that pin code, or a clear "not serviceable here" message if it's out of range.
 
 4. Technical Approach
 
 Frontend: Next.js 14 (App Router) + TypeScript + Tailwind
 
-frontend/
-├── app/
-│ ├── page.tsx # the products listing page
-│ ├── product/[id]/page.tsx # the actual product page fetches the product on the
-│ └── product/[id]/not-found.tsx # shown if someone opens a product id that doesn't exist
-├── components/
-│ ├── ProductView.tsx # this is the main component that contain all product details
-│ ├── SizeSelector.tsx # the clickable size chips
-│ ├── StockBadge.tsx # shows in stock / limited stock / out of stock with a color next to it
-│ ├── PriceBreakdown.tsx # base price, discounts, fees, final price
-│ ├── DeliveryEstimate.tsx # the pincode input and result
-│ ├── AlternativesGrid.tsx # only shows up when the selected size is out of stock
-│ └── LoadingSkeleton.tsx / ErrorState.tsx # small reusable pieces so every section can
-│ # show its own loading/error state instead of the whole
-│ # page breaking if one part fails
-├── hooks/
-│ ├── useAvailability.ts # runs the stock check whenever the selected size
-│ │ # changes, and ignores the result if the user has
-│ │ # already switched to a different size before it comes
-│ │ # back (so an old slow response can't overwrite a newer
-│ │ # one)
-│ └── useDeliveryEstimate.ts # waits 400ms after the user stops typing the pincode
-│ # before actually calling the API, so it's not sending a
-│ # request on every single keystroke
-└── lib/
-├── api.ts # all the fetch calls to the backend live here, with one
-│ # shared error type so I'm not handling errors
-│ # differently in every component
-└── types.ts # the TypeScript types, written to match the backend's # response shapes exactly
+    frontend/
+        ├── app/
+        │   ├── page.tsx                     # the products listing page
+        │   ├── product/[id]/page.tsx        # the actual product page fetches the product on the
+        │   └── product/[id]/not-found.tsx   # shown if someone opens a product id that doesn't exist
+        ├── components/
+        │   ├── ProductView.tsx               # this is the main component that contain all product details
+        │   ├── SizeSelector.tsx              # the clickable size chips
+        │   ├── StockBadge.tsx                # shows in stock / limited stock / out of stock with a color next to it
+        │   ├── PriceBreakdown.tsx            # base price, discounts, fees, final price
+        │   ├── DeliveryEstimate.tsx          # the pincode input and result
+        │   ├── AlternativesGrid.tsx          # only shows up when the selected size is out of stock
+        │   └── LoadingSkeleton.tsx / ErrorState.tsx   # small reusable pieces so every section can
+        │                                     # show its own loading/error state instead of the whole
+        │                                     # page breaking if one part fails
+        ├── hooks/
+        │   ├── useAvailability.ts            # runs the stock check whenever the selected size
+        │   │                                 # changes, and ignores the result if the user has
+        │   │                                 # already switched to a different size before it comes
+        │   │                                 # back (so an old slow response can't overwrite a newer
+        │   │                                 # one)
+        │   └── useDeliveryEstimate.ts        # waits 400ms after the user stops typing the pincode
+        │                                     # before actually calling the API, so it's not sending a
+        │                                     # request on every single keystroke
+        └── lib/
+            ├── api.ts                        # all the fetch calls to the backend live here, with one
+            │                                 # shared error type so I'm not handling errors
+            │                                 # differently in every component
+            └── types.ts                     # the TypeScript types, written to match the backend's
+                                            # response shapes exactly
+    Data Model
+    products (id, title, brand, category, base_price, image_url)
+    └─ product_variants (product_id, size, stock_qty)
+    └─ price_adjustments (product_id, label, type[discount|fee], amount, is_percentage)
+    delivery_zones (pincode_prefix, min_days, max_days, is_serviceable)
 
-Data Model
-products (id, title, brand, category, base_price, image_url)
-└─ product_variants (product_id, size, stock_qty)
-└─ price_adjustments (product_id, label, type[discount|fee], amount, is_percentage)
-delivery_zones (pincode_prefix, min_days, max_days, is_serviceable)
+    Assumptions
+    1.I didn't build separate stock counts per region/warehouse.
+    2.The delivery estimate is based only on the pincode right now, it doesn't account for a product needing extra handling time
+    3.Prices are in PKR, no multi-currency support.
 
 Backend: FastAPI + Supabase (Postgres)
 
-backend/
-├── main.py # this is where the app actually starts sets up CORS so the
-│ # frontend is allowed to call it, registers all the routers,
-│ # and has a simple /health route just to check the server is alive
-|
-├── config.py # all the settings in one place the database URL, which
-│ # frontend origin is allowed to call the API, the stock
-│ # threshold, and the price tolerance used for alternatives
-|
-├── db.py # sets up the async SQLAlchemy connection to Supabase
-|
-├── schema.sql # the table definitions I run this once manually in the
-│ # Supabase SQL editor, it's not run automatically by the app
-|
-├── seed.sql # fake product/stock/price/delivery data so there's something
-│ # to actually test the UI states with
-|
-├── routers/ # these files only handle the request/response part they
-│ │ # don't calculate anything themselves, they just call the
-│ │ # service functions and return the result
-| |
-│ ├── products.py # GET /products and GET /products/{id}
-| |
-│ ├── availability.py # GET /products/{id}/availability?size=
-| |
-│ ├── delivery.py # GET /delivery/estimate?pincode=&product_id=
-| |
-│ └── alternatives.py # GET /products/{id}/alternatives?exclude_size=
-|  
-├── repositories/ # this is the layer that actually talks to the database
-│ # writes the SQLAlchemy queries, nothing else
-|
-├── services/ # this is the important folder plain Python functions with
-│ │ # no FastAPI or database code in them at all, just the actual
-│ │ # logic, so I can test them directly
-| |
-│ ├── pricing.py # takes base price + list of discounts/fees and works out the
-│ │ # final price: discounts are applied first, then fees, so the
-│ │ # fee doesn't get calculated on the original price by mistake
-| |
-│ ├── availability.py # takes a stock number and decides if it's in stock / limited
-│ │ # stock / out of stock, based on the threshold from config.py
-| |
-│ ├── delivery.py # takes a pincode and the list of delivery zones and figures
-│ │ # out if we deliver there and how long it'll take
-| |
-│ └── matching.py # the alternatives logic same category, price within range,
-│ # and the size the customer wanted has to actually be in stock
-|
-├── schemas/ # these are just the Pydantic models that define what the API
-│ # response looks like
+   backend/
+    ├── main.py                   # this is where the app actually starts sets up CORS so the
+    │                             # frontend is allowed to call it, registers all the routers,
+    │                             # and has a simple /health route just to check the server is alive
+    |
+    ├── config.py                 # all the settings in one place the database URL, which
+    │                             # frontend origin is allowed to call the API, the stock
+    │                             # threshold, and the price tolerance used for alternatives
+    |
+    ├── db.py                     # sets up the async SQLAlchemy connection to Supabase
+    |
+    ├── schema.sql                # the table definitions I run this once manually in the
+    │                             # Supabase SQL editor, it's not run automatically by the app
+    |
+    ├── seed.sql                  # fake product/stock/price/delivery data so there's something
+    │                             # to actually test the UI states with 
+    |
+    ├── routers/                  # these files only handle the request/response part they
+    │   │                         # don't calculate anything themselves, they just call the
+    │   │                         # service functions and return the result
+    |   |
+    │   ├── products.py           # GET /products and GET /products/{id}
+    |   |
+    │   ├── availability.py       # GET /products/{id}/availability?size=
+    |   |
+    │   ├── delivery.py           # GET /delivery/estimate?pincode=&product_id=
+    |   |
+    │   └── alternatives.py       # GET /products/{id}/alternatives?exclude_size=
+    |  
+    ├── repositories/             # this is the layer that actually talks to the database 
+    │                             # writes the SQLAlchemy queries, nothing else
+    |
+    ├── services/                 # this is the important folder plain Python functions with
+    │   │                         # no FastAPI or database code in them at all, just the actual
+    │   │                         # logic, so I can test them directly
+    |   |
+    │   ├── pricing.py            # takes base price + list of discounts/fees and works out the
+    │   │                         # final price: discounts are applied first, then fees, so the
+    │   │                         # fee doesn't get calculated on the original price by mistake
+    |   |
+    │   ├── availability.py       # takes a stock number and decides if it's in stock / limited
+    │   │                         # stock / out of stock, based on the threshold from config.py
+    |   |
+    │   ├── delivery.py           # takes a pincode and the list of delivery zones and figures
+    │   │                         # out if we deliver there and how long it'll take
+    |   |
+    │   └── matching.py           # the alternatives logic same category, price within range,
+    │                             # and the size the customer wanted has to actually be in stock
+    |
+    ├── schemas/                  # these are just the Pydantic models that define what the API
+    │                             # response looks like 
 
----
 
-| Method | Path | Purpose |
-|********************************\_********************************|******************\_\_******************|
-| GET | /products | Catalog listing |
-| GET | /products/{id} | Product + variants + price breakdown |
-| GET | /products/{id}/availability?size=M | Stock status for one size |
-| GET | /delivery/estimate?pincode=54000&product_id={id} | Delivery window, or "unavailable" |
-| GET | /products/{id}/alternatives?exclude_size=M | Similar in-stock alternatives |
-| GET | /health | Liveness check |
-|********************************\_********************************|******************\_\_******************|
+__________________________________________________________________________________________________________
+| Method |	 Path	                                              | Purpose                              |
+|_________________________________________________________________|______________________________________|
+| GET	 |  /products	                                          | Catalog listing                      |
+| GET	 |  /products/{id}	                                      | Product + variants + price breakdown |
+| GET	 |  /products/{id}/availability?size=M	                  | Stock status for one size            | 
+| GET	 |  /delivery/estimate?pincode=54000&product_id={id}	  | Delivery window, or "unavailable"    |
+| GET	 |  /products/{id}/alternatives?exclude_size=M	          | Similar in-stock alternatives        |
+| GET	 |  /health	                                              | Liveness check                       |
+|_________________________________________________________________|______________________________________|
+
 
 5. How to Run
 
-Clone the repository
+    Clone the repository
 
-git clone https://github.com/maheen-zahid-26/LAAM-Assessment.git
-cd LAAM-Assessment
+    git clone https://github.com/maheen-zahid-26/LAAM-Assessment.git
+    cd LAAM-Assessment
 
-Database setup (one-time only)
+    Database setup (one-time only)
 
-This project uses Supabase (Postgres). If you're connecting to a fresh
-Supabase project that doesn't have these tables yet, paste the contents of
-backend/schema.sql, then backend/seed.sql, into the Supabase SQL editor.
-This only needs to be done once per project — the data persists, so you
-don't repeat this step on every run.
+    This project uses Supabase (Postgres). If you're connecting to a fresh
+    Supabase project that doesn't have these tables yet, paste the contents of
+    backend/schema.sql, then backend/seed.sql, into the Supabase SQL editor.
+    This only needs to be done once per project — the data persists, so you
+    don't repeat this step on every run.
 
-Backend
+    Backend
 
-cd backend
-python -m venv venv
-source venv/bin/activate # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-make a .env file in the backend folder and paste
-DATABASE_URL=postgresql+asyncpg://postgres.tmbhfuywlickbsepbxya:cQW%40b2%3F%40yK7FHcw@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres
+    cd backend
+    python -m venv venv
+    source venv/bin/activate # Windows: venv\Scripts\activate
+    pip install -r requirements.txt
+    make a .env file in the backend folder and paste
+    DATABASE_URL=postgresql+asyncpg://postgres.tmbhfuywlickbsepbxya:cQW%40b2%3F%40yK7FHcw@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres
 
-    CORS_ORIGIN=http://localhost:3000
+        CORS_ORIGIN=http://localhost:3000
 
-uvicorn main:app --reload --port 8000
+    uvicorn main:app --reload --port 8000
 
-Backend runs at http://localhost:8000 — API docs at http://localhost:8000/docs
+    Backend runs at http://localhost:8000 — API docs at http://localhost:8000/docs
 
-Frontend
+    Frontend
 
-cd frontend
-npm install
-npm run dev
+    cd frontend
+    npm install
+    npm run dev
 
-Note: start the backend before the frontend.
+    Note: start the backend before the frontend.
 
 6. Tests
 
-I asked AI to give me tests that can check all the possible use cases of my code. It gave me 24 backend unit tests (pytest), covering the four pieces of logic that actually carry risk:
+    I asked AI to give me tests that can check all the possible use cases of my code. It gave me 24 backend unit tests (pytest), covering the four pieces of logic that actually carry risk:
 
-1.test_pricing.py: discount-before-fee ordering, percentage vs. flat, negative/zero adjustments skipped, discount never pushes the price below zero.
-2.test_availability.py: stock threshold boundaries (0 / at-threshold / just-above / large / negative stock).
-3.test_delivery.py: prefix matching, longest-prefix-wins, unserviceable zones, no matching zone at all.
-4.test_matching.py: category filter, price tolerance, size-in-stock filter, excludes the original product, limit + sort-by-proximity.
+    1.test_pricing.py: discount-before-fee ordering, percentage vs. flat, negative/zero adjustments skipped, discount never pushes the price below zero.
+    2.test_availability.py: stock threshold boundaries (0 / at-threshold / just-above / large / negative stock).
+    3.test_delivery.py: prefix matching, longest-prefix-wins, unserviceable zones, no matching zone at all.
+    4.test_matching.py: category filter, price tolerance, size-in-stock filter, excludes the original product, limit + sort-by-proximity.
 
-These are pure-function tests against the services/ layer no database or running server is required.
+    These are pure-function tests against the services/ layer no database or running server is required.
 
-Run with:
-cd backend
-pytest -v
+    Run with:
+    cd backend
+    pytest -v
+
+7. Tradeoffs (given the 3–4 hour limit)
+
+    I built just one products page. What I wanted was to build a page containing category filters or price filters that makes the alternatives part more easy and gives the customer more choices.
+
+    The alternatives logic is also incomplete, as I have done it rule-based (matching the category and price range), but it should be a recommender — like it tracks the customer's interests and then recommends.
+
+    The database is also very generic.
+
+8. Future Improvements
+
+    Database
+        - Move schema.sql and seed.sql into a proper migration tool
+          instead of pasting SQL manually into the Supabase editor right now
+          there's no versioning or rollback if a schema change breaks something.
+        - Add foreign key indexes explicitly (e.g. product_variants.product_id,
+          price_adjustments.product_id) since query performance on the pooled
+          Supabase connection matters more than on a local DB each extra
+          round trip is expensive.
+        - Normalize category into its own table instead of a free-text column
+          on products, so the matching logic in services/matching.py isn't
+          relying on exact string matches that could drift
+
+    Error handling
+        - The backend currently lets a few failure modes surface as raw 500s
+          instead of returning a structured error the frontend can render gracefully. 
+          Add a consistent error response shape (code + message) across all routers.
+        - Add retry/backoff on the frontend's fetch calls in lib/api.ts for
+          transient network failures, instead of surfacing "Failed to fetch"
+          directly.
+
+    Real recommendation logic for alternatives
+        - Replace the rule-based category+price matcher in
+          services/matching.py with something that also considers past views,
+          purchases, or explicit customer preferences.
+        - Track "customer clicked an alternative" as a signal to improve
+          future matches.
+        - Consider a hybrid approach: keep the rule-based filter as a
+          fallback (guaranteed in-stock, in-category, in-budget) but rank
+          results with a learned model on top, so there's still a sane
+          floor when there's no user history.
+
+    Other
+        - Add a cart/checkout flow, since the assessment scope stopped at the
+          product page.
+        - Add category and price filters on the products listing page.
+        - Add loading/error states consistency check across all components,
+          since each one currently manages its own state independently.
+
+
+9. AI Usage
+
+Tool used: 
+
+    I used Claude (free plan)
+
+What Claude helped with:
+
+    When I started, I first made a solution to this problem — how should I solve it, and decided which technology stacks I want to use. Then I shared all my proposed solution with the problem statement to Claude. My proposed solution was the one I mentioned in Problem Understanding, and the stack that I selected was Next.js and Supabase.
+
+    I was planning to use Supabase's edge functions and the Next frontend to build this, but Claude suggested that for the scope of this assessment I should use a backend to show my backend expertise.
+
+    Then Claude helped in generating first drafts of the backend structure (routers/services/repositories split), the SQL schema, and seed data with deliberately mixed stock/pricing/delivery scenarios so every UI state (in stock, low stock, out of stock, serviceable, unserviceable, discount+fee, discount only, fee only, no adjustments) would be exercised without hand-crafting each case.
+
+    Then generating first drafts of the frontend components/hooks and the pricing/availability/delivery/matching service functions.
+
+    I also used AI when I was facing problems in connecting the database to the backend (that was just a URL problem).
+
+    At the end, it helped me generate the pytest test cases for the four service modules.
+
+What I reviewed or changed manually:
+
+   I reviewed every generated file for correctness against the actual
+    requirement not just that it ran, but that the logic matched the
+    problem statement (e.g. checking that fees are computed on the
+    discounted subtotal and not the original base price, and that the
+    delivery zone matching picks the longest/most specific pincode prefix
+    rather than the first match).
+
+  Specific things I changed or caught:
+
+    - Fixed a missing import in repositories/product_repo.py — the
+      alternatives query used selectinload() but only joinedload was
+      imported, which threw a NameError and 500'd the /alternatives
+      endpoint. AI-generated code across multiple files doesn't always
+      keep imports in sync when functions get added incrementally, so I
+      went through each repository/service file and cross-checked every
+      function used against its import list.
+
+    - Reviewed the CORS and .env setup in config.py and main.py manually,
+      since a misconfigured origin is the kind of bug that only shows up
+      as a confusing frontend network error rather than a clear backend
+      exception.
+
+
+Audit trail note: because this was Claude's free chat tier rather than an API/agentic
+workflow with tool-call logging, there is no automated per-action audit log to attach.

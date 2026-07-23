@@ -49,10 +49,6 @@ For the user flow, it is like:
 
 4. Technical Approach
 
-Backend: FastAPI + Supabase (Postgres)
-
-
-
 Frontend: Next.js 14 (App Router) + TypeScript + Tailwind
 
 frontend/
@@ -85,3 +81,13 @@ frontend/
     │                                 # differently in every component
     └── types.ts                     # the TypeScript types, written to match the backend's
                                       # response shapes exactly
+
+
+Data Model 
+products (id, title, brand, category, base_price, image_url) 
+    └─ product_variants (product_id, size, stock_qty) 
+    └─ price_adjustments (product_id, label, type[discount|fee], amount, is_percentage) 
+delivery_zones (pincode_prefix, min_days, max_days, is_serviceable)
+
+
+Backend: FastAPI + Supabase (Postgres)

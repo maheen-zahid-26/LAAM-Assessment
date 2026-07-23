@@ -91,3 +91,113 @@ delivery_zones (pincode_prefix, min_days, max_days, is_serviceable)
 
 
 Backend: FastAPI + Supabase (Postgres)
+
+
+backend/
+├── main.py                   # this is where the app actually starts sets up CORS so the
+│                             # frontend is allowed to call it, registers all the routers,
+│                             # and has a simple /health route just to check the server is alive
+|
+├── config.py                 # all the settings in one place the database URL, which
+│                             # frontend origin is allowed to call the API, the stock
+│                             # threshold, and the price tolerance used for alternatives
+|
+├── db.py                     # sets up the async SQLAlchemy connection to Supabase
+|
+├── schema.sql                # the table definitions I run this once manually in the
+│                             # Supabase SQL editor, it's not run automatically by the app
+|
+├── seed.sql                  # fake product/stock/price/delivery data so there's something
+│                             # to actually test the UI states with 
+|
+├── routers/                  # these files only handle the request/response part they
+│   │                         # don't calculate anything themselves, they just call the
+│   │                         # service functions and return the result
+|   |
+│   ├── products.py           # GET /products and GET /products/{id}
+|   |
+│   ├── availability.py       # GET /products/{id}/availability?size=
+|   |
+│   ├── delivery.py           # GET /delivery/estimate?pincode=&product_id=
+|   |
+│   └── alternatives.py       # GET /products/{id}/alternatives?exclude_size=
+|  
+├── repositories/             # this is the layer that actually talks to the database 
+│                             # writes the SQLAlchemy queries, nothing else
+|
+├── services/                 # this is the important folder plain Python functions with
+│   │                         # no FastAPI or database code in them at all, just the actual
+│   │                         # logic, so I can test them directly
+|   |
+│   ├── pricing.py            # takes base price + list of discounts/fees and works out the
+│   │                         # final price: discounts are applied first, then fees, so the
+│   │                         # fee doesn't get calculated on the original price by mistake
+|   |
+│   ├── availability.py       # takes a stock number and decides if it's in stock / limited
+│   │                         # stock / out of stock, based on the threshold from config.py
+|   |
+│   ├── delivery.py           # takes a pincode and the list of delivery zones and figures
+│   │                         # out if we deliver there and how long it'll take
+|   |
+│   └── matching.py           # the alternatives logic same category, price within range,
+│                             # and the size the customer wanted has to actually be in stock
+|
+├── schemas/                  # these are just the Pydantic models that define what the API
+│                             # response looks like 
+
+
+__________________________________________________________________________________________________________
+| Method |	 Path	                                              | Purpose                              |
+|_________________________________________________________________|______________________________________|
+| GET	 |  /products	                                          | Catalog listing                      |
+| GET	 |  /products/{id}	                                      | Product + variants + price breakdown |
+| GET	 |  /products/{id}/availability?size=M	                  | Stock status for one size            | 
+| GET	 |  /delivery/estimate?pincode=54000&product_id={id}	  | Delivery window, or "unavailable"    |
+| GET	 |  /products/{id}/alternatives?exclude_size=M	          | Similar in-stock alternatives        |
+| GET	 |  /health	                                              | Liveness check                       |
+|_________________________________________________________________|______________________________________|
+
+
+
+
+
+5. How to Run
+
+Clone the repository
+
+git clone https://github.com/maheen-zahid-26/LAAM-Assessment.git
+cd LAAM-Assessment
+
+Database setup (one-time only)
+
+This project uses Supabase (Postgres). If you're connecting to a fresh
+Supabase project that doesn't have these tables yet, paste the contents of
+backend/schema.sql, then backend/seed.sql, into the Supabase SQL editor.
+This only needs to be done once per project — the data persists, so you
+don't repeat this step on every run.
+
+Backend
+
+cd backend
+python -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+make a .env file in the backend folder and paste
+	
+	DATABASE_URL=postgresql+asyncpg://postgres.tmbhfuywlickbsepbxya:cQW%40b2%3F%40yK7FHcw@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres
+
+	CORS_ORIGIN=http://localhost:3000
+
+uvicorn main:app --reload --port 8000
+
+Backend runs at http://localhost:8000 — API docs at http://localhost:8000/docs
+
+Frontend
+
+cd frontend
+npm install
+npm run dev
+
+Note: start the backend before the frontend.
+
+

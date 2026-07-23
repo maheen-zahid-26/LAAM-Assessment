@@ -40,11 +40,6 @@ export default async function Home() {
         LAAM
       </p>
       <h1 className="font-display text-3xl mb-3">Purchase Confidence</h1>
-      <p className="text-sm text-ink/60 mb-10">
-        This demo focuses on a single product page — size availability, price
-        breakdown, delivery estimate, and alternatives. Pick a product below to
-        view it.
-      </p>
 
       {products.length === 0 ? (
         <p className="text-sm text-ink/50">No products available right now.</p>
@@ -56,7 +51,7 @@ export default async function Home() {
               href={`/product/${product.id}`}
               className="border border-line rounded-tag p-3 bg-paper-raised hover:border-teal transition-colors block"
             >
-              <div className="relative bg-paper rounded-tag overflow-hidden mb-2">
+              <div className="relative aspect-3/4 bg-paper rounded-tag overflow-hidden mb-2">
                 {product.image_url && (
                   <Image
                     src={product.image_url}

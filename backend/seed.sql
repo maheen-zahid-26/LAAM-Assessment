@@ -4,8 +4,8 @@
 -- ============ PRODUCTS ============
 
 insert into products (id, title, brand, category, base_price, image_url) values
-  ('11111111-1111-1111-1111-111111111101', 'Embroidered Lawn Suit — 3 Piece', 'Sana Safinaz', 'lawn', 8500, 'https://images.unsplash.com/photo-1583391733956-6c78276477e2'),
-  ('11111111-1111-1111-1111-111111111102', 'Printed Lawn Kurta', 'Khaadi', 'lawn', 4200, 'https://images.unsplash.com/photo-1610030181087-540c3273b9cd'),
+  ('11111111-1111-1111-1111-111111111101', 'Embroidered Lawn Suit — 3 Piece', 'Sana Safinaz', 'lawn', 8500, 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1'),
+  ('11111111-1111-1111-1111-111111111102', 'Printed Lawn Kurta', 'Khaadi', 'lawn', 4200, 'https://images.unsplash.com/photo-1595777457583-95e059d581b8'),
   ('11111111-1111-1111-1111-111111111103', 'Digital Print Lawn Set', 'Gul Ahmed', 'lawn', 5600, 'https://images.unsplash.com/photo-1617019114583-affb34d1b3cd'),
   ('11111111-1111-1111-1111-111111111104', 'Chikankari Lawn Shirt', 'Bareeze', 'lawn', 6100, 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1'),
 
